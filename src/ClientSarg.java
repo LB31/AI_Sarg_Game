@@ -1,5 +1,8 @@
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import javax.imageio.ImageIO;
@@ -12,10 +15,14 @@ public class ClientSarg implements Runnable {
 
 	private String playerName;
 	private int playerNumber;
-
+	
 	// Test
 	private int lastX;
 	private int lastY;
+	private int[][] tokenPositions = new int[9][9];
+	private List<Vector2D> ownTokenPositions = new ArrayList<Vector2D>();
+
+	
 
 	public ClientSarg(String name) throws IOException {
 		playerName = name;
@@ -37,19 +44,50 @@ public class ClientSarg implements Runnable {
 //	            }
 //	        }
 //	    }
+	
+	private void initialize() {
+		playerNumber = nc.getMyPlayerNumber(); // 0 = rot, 1 = grün, 2 = blau
+		System.out.println(playerNumber + " number");
+		
+		for (int i = 0; i < 5; i++) {
+			// red
+			tokenPositions[i][0] = 1;
+			// green
+			tokenPositions[i][4+i] = 2;
+			// blue
+			tokenPositions[8][4+i] = 3;
+			
+			if(playerNumber == 0)
+				ownTokenPositions.add(new Vector2D(i, 0));
+			else if(playerNumber == 1)
+				ownTokenPositions.add(new Vector2D(i, 4+i));
+			else
+				ownTokenPositions.add(new Vector2D(8, 4+i));
+		}
+	}
 
 	@Override
 	public void run() {
 
 		try {
+			
+
+
+			
 			nc = new NetworkClient("127.0.0.1", playerName, ImageIO.read(new File("./bilder/phoenix.png")));
 
 			nc.getTimeLimitInSeconds();
 
 			nc.getExpectedNetworkLatencyInMilliseconds();
 
-			playerNumber = nc.getMyPlayerNumber(); // 0 = rot, 1 = grün, 2 = blau
-			System.out.println(playerNumber + " number");
+			initialize();
+
+			for (int[] row : tokenPositions) {
+				System.out.println(Arrays.toString(row)); 
+			}
+			
+			System.out.println(ownTokenPositions.get(4).x);
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -92,7 +130,7 @@ public class ClientSarg implements Runnable {
 			int x = 8;
 			int y = 4;
 
-			move = new Move(x + lastX, 4 + lastY);
+			move = new Move(x + lastX, y + lastY);
 			lastX--;
 			lastY--;
 			break;
