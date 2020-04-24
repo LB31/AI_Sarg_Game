@@ -17,34 +17,19 @@ public class ClientSarg implements Runnable {
 	private int playerNumber;
 	
 	// Test
-	private int lastX;
-	private int lastY;
 	private int[][] tokenPositions = new int[9][9];
-	private List<Vector2D> ownTokenPositions = new ArrayList<Vector2D>();
-
+	private List<Vector2D> positionsOwnTokens = new ArrayList<Vector2D>();
+	private List<Vector2D> positionsPlayer2 = new ArrayList<Vector2D>();
+	private List<Vector2D> positionsPlayer3 = new ArrayList<Vector2D>();
+	private int playerNumber2;
+	private int playerNumber3;
 	
 
 	public ClientSarg(String name) throws IOException {
 		playerName = name;
 
 	}
-//
-//	        // initialisieren... z.B. Spielbrett
-//
-//	        
-//
-//	        while (true) {
-//	            Move receiveMove = nc.receiveMove();
-//	            if (receiveMove == null) {
-//	                // ich bin dran
-//	                // Move move = findeCleverenZug();
-//	                nc.sendMove(move);
-//	            } else {
-//	                // integriereZugInSpielbrett(move);
-//	            }
-//	        }
-//	    }
-	
+
 	private void initialize() {
 		playerNumber = nc.getMyPlayerNumber(); // 0 = rot, 1 = grün, 2 = blau
 		System.out.println(playerNumber + " number");
@@ -57,12 +42,32 @@ public class ClientSarg implements Runnable {
 			// blue
 			tokenPositions[8][4+i] = 3;
 			
-			if(playerNumber == 0)
-				ownTokenPositions.add(new Vector2D(i, 0));
-			else if(playerNumber == 1)
-				ownTokenPositions.add(new Vector2D(i, 4+i));
-			else
-				ownTokenPositions.add(new Vector2D(8, 4+i));
+			Vector2D posRed = new Vector2D(i, 0);
+			Vector2D posGreen = new Vector2D(i, 4+i);
+			Vector2D posBlue = new Vector2D(8, 4+i);
+			
+			if(playerNumber == 0) {
+				positionsOwnTokens.add(posRed);
+				positionsPlayer2.add(posGreen);
+				positionsPlayer3.add(posBlue);
+				playerNumber2 = 1;
+				playerNumber3 = 2;
+			}
+			else if(playerNumber == 1) {
+				positionsOwnTokens.add(posGreen);
+				positionsPlayer2.add(posRed);
+				positionsPlayer3.add(posBlue);
+				playerNumber2 = 0;
+				playerNumber3 = 2;
+			}		
+			else {
+				positionsOwnTokens.add(posBlue);
+				positionsPlayer2.add(posRed);
+				positionsPlayer3.add(posGreen);
+				playerNumber2 = 0;
+				playerNumber3 = 1;
+			}
+				
 		}
 	}
 
@@ -70,23 +75,17 @@ public class ClientSarg implements Runnable {
 	public void run() {
 
 		try {
-			
-
-
-			
 			nc = new NetworkClient("127.0.0.1", playerName, ImageIO.read(new File("./bilder/phoenix.png")));
-
-			nc.getTimeLimitInSeconds();
-
-			nc.getExpectedNetworkLatencyInMilliseconds();
-
+			
 			initialize();
 
+			// Debug
+			System.out.println("Timelimit " + nc.getTimeLimitInSeconds());
+			System.out.println("getExpectedNetworkLatencyInMilliseconds " + nc.getExpectedNetworkLatencyInMilliseconds());
 			for (int[] row : tokenPositions) {
 				System.out.println(Arrays.toString(row)); 
 			}
-			
-			System.out.println(ownTokenPositions.get(4).x);
+			System.out.println(positionsOwnTokens.get(4).x);
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -98,47 +97,53 @@ public class ClientSarg implements Runnable {
 
 	private void update() {
 		while (true) {
-			Move receiveMove = nc.receiveMove();
-			if (receiveMove == null) {
+			Move receivedMove = nc.receiveMove();
+			if (receivedMove == null) {
 				// ich bin dran
 				Move move = calculateMove();
 				nc.sendMove(move);
 			} else {
-				// integriereZugInSpielbrett(move);
+				updatePlayfield(receivedMove);
 			}
 		}
 	}
+	
 
 	private Move calculateMove() {
-		Move move;
-		switch (playerNumber) {
-		case 0: {
-			int y = 0;
-
-			move = new Move(0, y + lastY);
-			lastY++;
-			break;
-		}
-		case 1: {
-			int x = 4;
-
-			move = new Move(x + lastX, 8);
-			lastX++;
-			break;
-		}
-		case 2: {
-			int x = 8;
-			int y = 4;
-
-			move = new Move(x + lastX, y + lastY);
-			lastX--;
-			lastY--;
-			break;
-		}
-		default:
-			throw new IllegalArgumentException("Unexpected value: " + playerNumber);
-		}
+		Move move = null;
+		
+		int randomNum = ThreadLocalRandom.current().nextInt(0, positionsOwnTokens.size());
+		Vector2D token = positionsOwnTokens.get(randomNum);
+		
+		move = new Move((int)token.x, (int)token.y);
+		
 		return move;
+	}
+	
+	private void updatePosition(Vector2D startPos, List<Vector2D> player) {
+		
+	}
+	
+	private void updatePlayfield(Move move) {
+		int playerNumber = tokenPositions[move.x][move.y];
+		tokenPositions[move.x][move.y] = 0;
+		if(playerNumber == 1) { // red
+			tokenPositions[move.x][move.y + 1] = 1;
+			tokenPositions[move.x + 1][move.y + 1] = 1;
+		}
+		else if(playerNumber == 2) { // green
+			tokenPositions[move.x + 1][move.y] = 2;
+			tokenPositions[move.x][move.y - 1] = 2;
+		}
+		else { // blue
+			tokenPositions[move.x - 1][move.y - 1] = 3;
+			tokenPositions[move.x - 1][move.y] = 3;
+		}
+		
+		if(playerNumber-1 == playerNumber) {
+			
+		}
+		
 	}
 
 }
