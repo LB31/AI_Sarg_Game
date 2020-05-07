@@ -21,7 +21,9 @@ public class ClientSarg implements Runnable {
 	private int[][] playfield = new int[9][9];
 	private List<Token> tokenPositions = new ArrayList<Token>();
 
-	
+	private int scoreOwn;
+	private int scorePlayer2;
+	private int scopePlayer3;
 
 	public ClientSarg(String name) throws IOException {
 		playerName = name;
@@ -64,7 +66,7 @@ public class ClientSarg implements Runnable {
 	public void run() {
 
 		try {
-			nc = new NetworkClient("127.0.0.1", playerName, ImageIO.read(new File("./bilder/phoenix.png")));
+			nc = new NetworkClient("127.0.0.1", playerName, ImageIO.read(new File("./bilder/phoenix.jpg")));
 			
 			initialize();
 
@@ -77,7 +79,6 @@ public class ClientSarg implements Runnable {
 //			System.out.println(tokenPositions.get(4).x);
 			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -115,9 +116,7 @@ public class ClientSarg implements Runnable {
 		return move;
 	}
 	
-	private void updatePosition(Vector2D startPos, List<Vector2D> player) {
-		
-	}
+
 	
 	private void updatePlayfield(Move move) {
 		Optional<Token> token = tokenPositions.stream().filter(t -> t.x == move.x && t.y == move.y).findFirst();
@@ -144,9 +143,30 @@ public class ClientSarg implements Runnable {
 			tokenPositions.add(new Token(move.x - 1, move.y - 1, ownerNumber, playerNumber));
 			tokenPositions.add(new Token(move.x - 1, move.y, ownerNumber, playerNumber));
 		}
-		
-		
-		
+
 	}
+	/**
+	 * 
+	 * @param maximazingPlayer 1 = max, 2 = min, 3 = min
+	 */
+	private void /* TODO return something */ AlphaBeta(Token position, int depth, int alpha, int beta, int maximazingPlayer) {
+		// TODO Züge sortieren, z.B. danach, wv Felder bis zum Punkt noch gegangen werden müssen
+		if(depth == 0 /* TODO game over in current position */) {
+			// TODO return something, probably the best Move
+		}
+		
+		if(maximazingPlayer == 1) {
+			
+		}
+		else if(maximazingPlayer == 2) {
+			
+		}
+		else {
+			
+		}
+	}
+	
+	
+	
 
 }
