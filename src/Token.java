@@ -1,10 +1,8 @@
-
 public class Token {
 	public int x;
     public int y;
     public int owner;
     public boolean mine;
-    
     
     public Token(int x, int y) {
     	this.x = x;
