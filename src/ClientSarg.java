@@ -3,7 +3,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 import javax.imageio.ImageIO;
@@ -19,14 +18,15 @@ public class ClientSarg implements Runnable {
 
 	private int[][] playfield = new int[9][9];
 	private List<Token> tokenPositions = new ArrayList<Token>();
-
-	private Vector2D[][] moveDirections = new Vector2D[][] { 
-			{ new Vector2D(0, 1), new Vector2D(1, 1) },
-			{ new Vector2D(1, 0), new Vector2D(0, -1) }, 
-			{ new Vector2D(-1, -1), new Vector2D(-1, 0) } 
-			};
-
 	private int[] scores = new int[3];
+
+	private Vector2D[][] moveDirections = new Vector2D[][] { { new Vector2D(0, 1), new Vector2D(1, 1) },
+			{ new Vector2D(1, 0), new Vector2D(0, -1) }, { new Vector2D(-1, -1), new Vector2D(-1, 0) } };
+
+	// Alpha-Beta Pruning
+	private int[][] playfieldAB = new int[9][9];
+	private List<Token> tokenPositionsAB = new ArrayList<Token>();
+	private int[] scoresAB = new int[3];
 
 	public ClientSarg(String name) throws IOException {
 		playerName = name;
@@ -35,7 +35,6 @@ public class ClientSarg implements Runnable {
 
 	private void initialize() {
 		playerNumber = nc.getMyPlayerNumber(); // 0 = rot, 1 = grün, 2 = blau
-		System.out.println(playerNumber + " number");
 
 		for (int i = 0; i < 5; i++) {
 			// red
@@ -53,14 +52,14 @@ public class ClientSarg implements Runnable {
 			tokenPositions.add(posGreen);
 			tokenPositions.add(posBlue);
 		}
-		
+
 		// mark the dark side of the playfield
 		for (int i = 1; i <= 4; i++) {
 			for (int j = 0; j < i; j++) {
-				playfield[j][5+i-1] = -1;
-				playfield[8-j][3-i+1] = -1;
+				playfield[j][5 + i - 1] = -1;
+				playfield[8 - j][3 - i + 1] = -1;
 			}
-			
+
 		}
 
 //		if(playerNumber == 0) {
@@ -83,10 +82,10 @@ public class ClientSarg implements Runnable {
 			// Debug
 //			System.out.println("Timelimit " + nc.getTimeLimitInSeconds());
 //			System.out.println("getExpectedNetworkLatencyInMilliseconds " + nc.getExpectedNetworkLatencyInMilliseconds());
-			if(playerNumber == 0)
-			for (int[] row : playfield) {
-				System.out.println(Arrays.toString(row)); 
-			}
+			if (playerNumber == 0)
+				for (int[] row : playfield) {
+					System.out.println(Arrays.toString(row));
+				}
 //			System.out.println(tokenPositions.get(4).x);
 
 		} catch (IOException e) {
@@ -111,108 +110,90 @@ public class ClientSarg implements Runnable {
 
 	private Move calculateMove() {
 		Move move = null;
-		Token[] myTokens = tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
 
+		// prepare temporary fields
+		playfieldAB = playfield.clone();
+		tokenPositionsAB = new ArrayList<Token>(tokenPositions);
+		scoresAB = scores.clone();
+
+//		int test = AlphaBeta(4, Integer.MIN_VALUE, Integer.MIN_VALUE, 1);
+
+		Token[] myTokens = tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
 		int randomNum = ThreadLocalRandom.current().nextInt(0, myTokens.length);
 		Token token = myTokens[randomNum];
-
-//		System.out.println("Anzahl meiner Token: " + myTokens.length);
-//		System.out.println("Gewählter Token: " + randomNum);
-
 		move = new Move((int) token.x, (int) token.y);
-//		System.out.println("Kommender move: " + move.x + " X " + move.y + " Y");
+
 		return move;
 	}
 
-	// TODO doch nichts returnen, mergen mit update field
-	public void getResultingPosition(Token tokenToMove, int leftRight) {
-		for (int i = 1; i <= playfield.length; i++) {
-			// new left Token
-			int newX = (int) (tokenToMove.x + moveDirections[tokenToMove.owner][leftRight].x * i);
-			int newY = (int) (tokenToMove.y + moveDirections[tokenToMove.owner][leftRight].y * i);
-			try {
-				int nextField = playfield[newX][newY];
-				
-				if(nextField == 0) { // The next field was empty
-					playfield[newX][newY] = tokenToMove.owner + 1;
-					tokenPositions.add(new Token(newX, newY, tokenToMove.owner, playerNumber));
-					break;
-				}
-				else if(nextField == -1) { // Außerhalb des Spielfels, jedoch noch im Array
+	public void updatePlayfield(Move move) {
+		Token tokenToMove = tokenPositions.stream().filter(t -> t.x == move.x && t.y == move.y).findFirst().get();
+
+		for (int i = 0; i < moveDirections[0].length; i++) {
+			
+			for (int j = 1; j <= playfield.length; j++) {
+				// new Token
+				int newX = (int) (tokenToMove.x + moveDirections[tokenToMove.owner][i].x * j);
+				int newY = (int) (tokenToMove.y + moveDirections[tokenToMove.owner][i].y * j);
+				try {
+					int nextField = playfield[newX][newY];
+
+					if (nextField == 0) { // The next field was empty
+						playfield[newX][newY] = tokenToMove.owner + 1;
+						tokenPositions.add(new Token(newX, newY, tokenToMove.owner, playerNumber));
+						break;
+					} else if (nextField == -1) { // still in array, but outside of the playing field
+						scores[tokenToMove.owner]++;
+						break;
+					} else {
+						// jumped over a token
+						playfield[newX][newY] = 0;
+						Token killedToken = tokenPositions.stream().filter(t -> t.x == newX && t.y == newY).findFirst()
+								.get();
+						tokenPositions.remove(killedToken);
+					}
+				} catch (IndexOutOfBoundsException e) { // point outside of the playing field array
 					scores[tokenToMove.owner]++;
-					System.out.println(Arrays.toString(scores));
 					break;
 				}
-				else {
-					// TODO übersprungenen Stein handlen
-					playfield[newX][newY] = 0;
-					Token killedToken = tokenPositions.stream().filter(t -> t.x == newX && t.y == newY).findFirst().get();
-					tokenPositions.remove(killedToken);
-				}
-			} catch (IndexOutOfBoundsException e) { // 
-				scores[tokenToMove.owner]++;
-				System.out.println("Error Punkt!");
-				System.out.println(Arrays.toString(scores));
-				break;
 			}
 		}
 
-    }
-
-	private void updatePlayfield(Move move) {
-		Token movedToken = tokenPositions.stream().filter(t -> t.x == move.x && t.y == move.y).findFirst().get();
-
-		getResultingPosition(movedToken, 0);
-		getResultingPosition(movedToken, 1);
-		// Get rid of old token
-		tokenPositions.remove(movedToken);
+		tokenPositions.remove(tokenToMove);
 		playfield[move.x][move.y] = 0;
-
-//		int ownerNumber = playfield[move.x][move.y] - 1;
-//
-//		playfield[(int) (move.x + moveDirections[ownerNumber][0].x)][(int) (move.y
-//				+ moveDirections[ownerNumber][0].y)] = ownerNumber + 1;
-//		playfield[(int) (move.x + moveDirections[ownerNumber][1].x)][(int) (move.y
-//				+ moveDirections[ownerNumber][1].y)] = ownerNumber + 1;
-//
-//		if (ownerNumber == 0) { // red
-//			playfield[move.x][move.y + 1] = 1;
-//			playfield[move.x + 1][move.y + 1] = 1;
-//			tokenPositions.add(new Token(move.x, move.y + 1, ownerNumber, playerNumber));
-//			tokenPositions.add(new Token(move.x + 1, move.y + 1, ownerNumber, playerNumber));
-//		} else if (ownerNumber == 1) { // green
-//			playfield[move.x + 1][move.y] = 2;
-//			playfield[move.x][move.y - 1] = 2;
-//			tokenPositions.add(new Token(move.x + 1, move.y, ownerNumber, playerNumber));
-//			tokenPositions.add(new Token(move.x, move.y - 1, ownerNumber, playerNumber));
-//		} else { // blue
-//			playfield[move.x - 1][move.y - 1] = 3;
-//			playfield[move.x - 1][move.y] = 3;
-//			tokenPositions.add(new Token(move.x - 1, move.y - 1, ownerNumber, playerNumber));
-//			tokenPositions.add(new Token(move.x - 1, move.y, ownerNumber, playerNumber));
-//		}
 
 	}
 
 	/**
 	 * 
-	 * @param maximazingPlayer 1 = max, 2 = min, 3 = min
+	 * @param player: 1 = max, 2 = min, 3 = min
 	 */
-	private void /* TODO return something */ AlphaBeta(Token position, int depth, int alpha, int beta,
-			int maximazingPlayer) {
+	private int AlphaBeta(int depth, int alpha, int beta, int player) {
 		// TODO Züge sortieren, z.B. danach, wv Felder bis zum Punkt noch gegangen
 		// werden müssen
 		if (depth == 0 /* TODO game over in current position */) {
-			// TODO return something, probably the best Move
+			// TODO return evalation
+			return calculateRating();
 		}
 
-		if (maximazingPlayer == 1) {
+		if (player == 1) {
+			Token[] currentTokens = tokenPositionsAB.stream().filter(t -> t.mine).toArray(Token[]::new);
+			for (Token token : currentTokens) {
 
-		} else if (maximazingPlayer == 2) {
+			}
+			int maxEval = Integer.MAX_VALUE;
+		} else if (player == 2) {
 
 		} else {
 
 		}
+		return 0;
+	}
+
+	private int calculateRating() {
+
+		return 0;
+
 	}
 
 }
