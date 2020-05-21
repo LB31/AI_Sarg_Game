@@ -1,8 +1,9 @@
-public class Token {
+public class Token implements Comparable<Token>  {
 	public int x;
     public int y;
     public int owner;
     public boolean mine;
+    public int fieldsToGo; // shortest way to a point
     
     public Token(int x, int y) {
     	this.x = x;
@@ -25,5 +26,15 @@ public class Token {
     	this.mine = token.mine;
     }
     
+
+	@Override
+	public int compareTo(Token o) {
+		return Integer.compare(this.fieldsToGo, o.fieldsToGo);
+	}
+	
+	public int getFieldsToGo() {
+		return fieldsToGo;
+	}
+	
     
 }

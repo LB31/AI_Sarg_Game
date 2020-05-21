@@ -2,21 +2,19 @@
 public class EvaluationFunction {
 	// Token amounts
 	public float a; // tokenAmountOwn
-	public float b; // tokenAmountPlayer2
-	public float c; // tokenAmountPlayer3
+	public float b; // token amount enemies
 	
 	// Scores
-	public float d; // scoreOwn
-	public float e; // scrorePlayer2
-	public float f; // scorePlayer3
+	public float c; // scoreOwn
+	public float d; // score enemies
 	
 	// Tokens in a row
-	public float g; // inRowOwn
-	public float h; // inRowPlayer2
-	public float i; // inRowPlayer3
+	public float e; // inRowOwn
+	public float f; // inRowPlayer2
+	public float g; // inRowPlayer3
 	
 	// Distance to score
-	public float j; // only own
+	public float h; // only own
 
 	public EvaluationFunction(float a, float b, float c, float d, float e, float f, float g, float h, float i,
 			float j) {
@@ -29,8 +27,8 @@ public class EvaluationFunction {
 		this.f = f;
 		this.g = g;
 		this.h = h;
-		this.i = i;
-		this.j = j;
+//		this.i = i;
+//		this.j = j;
 	}
 	
 
