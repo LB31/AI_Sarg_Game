@@ -331,7 +331,14 @@ public class ClientSarg implements Runnable {
 		if (currentField.scores[otherPlayers.get(0)] == 5 || currentField.scores[otherPlayers.get(1)] == 5) {
 			rating -= Integer.MIN_VALUE; // you would lose
 		}
-
+		// Distances to make a point
+		int distanceToWin = 0;
+		Token[] myTokens = currentField.tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);	
+		for (Token token : myTokens) {
+			distanceToWin += token.fieldsToGo;
+		}
+		rating -= evaFunc.h * distanceToWin;
+		
 		// TODO
 
 		return rating;
