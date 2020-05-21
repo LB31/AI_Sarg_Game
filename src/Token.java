@@ -17,4 +17,13 @@ public class Token {
     		mine = true;
     }
     
+    // clone constructor
+    public Token(Token token) {
+    	this.x = token.x;
+    	this.y = token.y;
+    	this.owner = token.owner;
+    	this.mine = token.mine;
+    }
+    
+    
 }

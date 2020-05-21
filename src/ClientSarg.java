@@ -25,8 +25,10 @@ public class ClientSarg implements Runnable {
 //	private List<PlayingField> alphaBetaFields = new ArrayList<PlayingField>();
 	private Stack<PlayingField> alphaBetaFields = new Stack<>();
 
-	private Vector2D[][] moveDirections = new Vector2D[][] { { new Vector2D(0, 1), new Vector2D(1, 1) },
-			{ new Vector2D(1, 0), new Vector2D(0, -1) }, { new Vector2D(-1, -1), new Vector2D(-1, 0) } };
+	private Vector2D[][] moveDirections = new Vector2D[][] { 
+			{ new Vector2D(0, 1), new Vector2D(1, 1) },
+			{ new Vector2D(1, 0), new Vector2D(0, -1) }, 
+			{ new Vector2D(-1, -1), new Vector2D(-1, 0) } };
 
 	private List<Integer> otherPlayers = new ArrayList<>() {{
 			add(0);
@@ -34,9 +36,11 @@ public class ClientSarg implements Runnable {
 			add(2);
 		}};
 
-	private int searchDepth = 4;
+	private int searchDepth = 6;
 
 	private Token bestTokenToMove;
+	
+	private int pruningCounter;
 
 	public ClientSarg(String name, EvaluationFunction eva) throws IOException {
 		playerName = name;
@@ -50,13 +54,6 @@ public class ClientSarg implements Runnable {
 		mainField = new PlayingField();
 
 		for (int i = 0; i < 5; i++) {
-			// red
-			mainField.playfield[i][0] = 1;
-			// green
-			mainField.playfield[i][4 + i] = 2;
-			// blue
-			mainField.playfield[8][4 + i] = 3;
-
 			Token posRed = new Token(i, 0, 0, playerNumber);
 			Token posGreen = new Token(i, 4 + i, 1, playerNumber);
 			Token posBlue = new Token(8, 4 + i, 2, playerNumber);
@@ -64,13 +61,27 @@ public class ClientSarg implements Runnable {
 			mainField.tokenPositions.add(posRed);
 			mainField.tokenPositions.add(posGreen);
 			mainField.tokenPositions.add(posBlue);
+			
+			
+			// red
+			mainField.playfield[i][0] = posRed;
+			// green
+			mainField.playfield[i][4 + i] = posGreen;
+			// blue
+			mainField.playfield[8][4 + i] = posBlue;
+
+
 		}
 
 		// mark the dark side of the playfield
 		for (int i = 1; i <= 4; i++) {
 			for (int j = 0; j < i; j++) {
-				mainField.playfield[j][5 + i - 1] = -1;
-				mainField.playfield[8 - j][3 - i + 1] = -1;
+				int posX = j; int posY = 5 + i - 1;
+				Token dummy1 = new Token(posX, posY, -1, -2);
+				mainField.playfield[posX][posY] = dummy1;
+				posX = 8 - j; posY = 3 - i + 1;
+				Token dummy2 = new Token(posX, posY, -1, -2);
+				mainField.playfield[posX][posY] = dummy2;
 			}
 
 		}
@@ -89,7 +100,7 @@ public class ClientSarg implements Runnable {
 //			System.out.println("Timelimit " + nc.getTimeLimitInSeconds());
 //			System.out.println("getExpectedNetworkLatencyInMilliseconds " + nc.getExpectedNetworkLatencyInMilliseconds());
 			if (playerNumber == 0)
-				for (int[] row : mainField.playfield) {
+				for (Token[] row : mainField.playfield) {
 					System.out.println(Arrays.toString(row));
 				}
 		} catch (IOException e) {
@@ -113,7 +124,9 @@ public class ClientSarg implements Runnable {
 	}
 
 	private PlayingField newPlayingFieldCopy(PlayingField pf) {
-		return new PlayingField(pf.playfield.clone(), new ArrayList<>(pf.tokenPositions), pf.scores.clone());
+		Token[][] playfieldCopy = Arrays.stream(pf.playfield).map(Token[]::clone).toArray(Token[][]::new);
+		int[] scoresCopy = Arrays.copyOf(pf.scores, pf.scores.length);
+		return new PlayingField(playfieldCopy, new ArrayList<>(pf.tokenPositions), scoresCopy);
 	}
 
 	private Move calculateMove() {
@@ -122,6 +135,7 @@ public class ClientSarg implements Runnable {
 		alphaBetaFields.push(newPlayingFieldCopy(mainField));
 		AlphaBeta(searchDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, 1);
 		alphaBetaFields.empty();
+		System.out.println(pruningCounter + " times geprunt von Spieler " + playerNumber);
 
 //		Token[] myTokens = mainField.tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
 //		int randomNum = ThreadLocalRandom.current().nextInt(0, myTokens.length);
@@ -137,7 +151,6 @@ public class ClientSarg implements Runnable {
 
 		if (alphaBeta) {
 			// create a new playing field with the stats from the last move
-//			playingField = newPlayingFieldCopy(alphaBetaFields.get(alphaBetaFields.size() - 1));
 			playingField = newPlayingFieldCopy(alphaBetaFields.peek());
 		} else { // for the actual updating of the original field
 			playingField = mainField;
@@ -145,41 +158,30 @@ public class ClientSarg implements Runnable {
 
 //		Token tokenToMove = playingField.tokenPositions.stream().filter(t -> t.x == move.x && t.y == move.y).findAny()
 //				.get();
-		Token tokenToMove = null;
-		for (Token token : playingField.tokenPositions) {
-			if(token.x == move.x && token.y == move.y) tokenToMove = token;
-		}
-		
-		for (int i = 0; i < moveDirections[0].length; i++) {
+		Token tokenToMove = playingField.playfield[move.x][move.y];
+
+		for (int i = 0; i < moveDirections[0].length; i++) { // for new Token on the left and right side
 
 			for (int j = 1; j <= playingField.playfield.length; j++) {
 				// new Token
-				int newX = (int) (tokenToMove.x + moveDirections[tokenToMove.owner][i].x * j);
-				int newY = (int) (tokenToMove.y + moveDirections[tokenToMove.owner][i].y * j);
+				int nextX = (int) (tokenToMove.x + moveDirections[tokenToMove.owner][i].x * j);
+				int nextY = (int) (tokenToMove.y + moveDirections[tokenToMove.owner][i].y * j);
 				try {
-					int nextField = playingField.playfield[newX][newY];
+					Token nextFieldToken = playingField.playfield[nextX][nextY];
 
-					if (nextField == 0) { // The next field was empty
-						playingField.playfield[newX][newY] = tokenToMove.owner + 1;
-						playingField.tokenPositions.add(new Token(newX, newY, tokenToMove.owner, playerNumber));
+					if (nextFieldToken == null) { // The next field was empty
+						Token newToken = new Token(nextX, nextY, tokenToMove.owner, playerNumber);
+						playingField.playfield[nextX][nextY] = newToken;
+						playingField.tokenPositions.add(newToken);
 						break;
-					} else if (nextField == -1) { // still in array, but outside of the playing field
+					} else if (nextFieldToken.owner == -1) { // still in array, but outside of the playing field
 						playingField.scores[tokenToMove.owner]++;
 						break;
 					} else {
 						// jumped over a token
-						playingField.playfield[newX][newY] = 0;
-//						boolean error = playingFieldDebugger(playingField);
-//
-//						Optional<Token> killedToken = playingField.tokenPositions.stream().filter(t -> t.x == newX && t.y == newY)
-//								.findFirst();
-//						boolean empty = true;
-//						if(killedToken.isEmpty()) empty = true;
-						Token finalToken = null;
-						for (Token token : playingField.tokenPositions) {
-							if(token.x == newX && token.y == newY) finalToken = token;
-						}
-						playingField.tokenPositions.remove(finalToken);
+						Token killedToken = playingField.playfield[nextX][nextY];
+						playingField.playfield[nextX][nextY] = null;
+						playingField.tokenPositions.remove(killedToken);
 					}
 				} catch (IndexOutOfBoundsException e) { // point outside of the playing field array
 					playingField.scores[tokenToMove.owner]++;
@@ -188,11 +190,11 @@ public class ClientSarg implements Runnable {
 			}
 		}
 
+		// Get rid of moved Token
 		playingField.tokenPositions.remove(tokenToMove);
-		playingField.playfield[move.x][move.y] = 0;
+		playingField.playfield[move.x][move.y] = null;
 
-		if (alphaBeta) {
-//			alphaBetaFields.add(playingField);		
+		if (alphaBeta) {	
 			alphaBetaFields.push(playingField);
 		}
 
@@ -203,12 +205,9 @@ public class ClientSarg implements Runnable {
 	 * @param player: 1 = max, 2 = min, 3 = min
 	 */
 	private int AlphaBeta(int depth, int alpha, int beta, int player) {
-//		System.out.println(depth + " current depth");
-//		System.out.println(alphaBetaFields.size() + " size list");
-		// TODO Züge sortieren, z.B. danach, wv Felder bis zum Punkt noch gegangen
-		// werden müssen
+// TODO Züge sortieren, z.B. danach, wv Felder bis zum Punkt noch gegangen werden müssen
+
 		if (depth == 0 /* TODO game over in current position */) {
-//			return calculateRating(alphaBetaFields.get(alphaBetaFields.size() - 1));
 			return calculateRating(alphaBetaFields.peek());
 		}
 
@@ -217,19 +216,20 @@ public class ClientSarg implements Runnable {
 			int maxEval = alpha;
 			Token[] currentTokens = alphaBetaFields.peek().tokenPositions.stream().filter(t -> t.mine)
 					.toArray(Token[]::new);
-//					alphaBetaFields.get(searchDepth - depth).tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
 			for (Token token : currentTokens) {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
 				int eval = AlphaBeta(depth - 1, maxEval, beta, 2);
-//				alphaBetaFields.remove(searchDepth - depth); // undo move
-				alphaBetaFields.pop();
+				alphaBetaFields.pop(); // undo move
 //				maxEval = Math.max(maxEval, eval);
 				if (eval > maxEval) {
 					maxEval = eval;
 					if (depth == searchDepth)
 						bestTokenToMove = token;
-					if (maxEval > beta)
-						break; // pruning
+					if (maxEval >= beta) {
+						pruningCounter++;
+						break; // pruning					
+					}
+						
 				}
 
 			}
@@ -242,12 +242,14 @@ public class ClientSarg implements Runnable {
 			for (Token token : currentTokens) {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
 				int eval = AlphaBeta(depth - 1, alpha, minEval, 3);
-//				alphaBetaFields.remove(searchDepth - depth); // undo move
-				alphaBetaFields.pop();
+				alphaBetaFields.pop(); // undo move
 				if (eval < minEval) {
 					minEval = eval;
-					if (minEval <= alpha)
+					if (minEval <= alpha) {
+						pruningCounter++;
 						break; // pruning
+					}
+						
 				}
 			}
 			return minEval;
@@ -258,12 +260,13 @@ public class ClientSarg implements Runnable {
 			for (Token token : currentTokens) {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
 				int eval = AlphaBeta(depth - 1, alpha, minEval, 1);
-//				alphaBetaFields.remove(searchDepth - depth); // undo move
-				alphaBetaFields.pop();
+				alphaBetaFields.pop(); // undo move
 				if (eval < minEval) {
 					minEval = eval;
-					if (minEval <= alpha)
+					if (minEval <= alpha) {
+						pruningCounter++;
 						break; // pruning
+					}
 				}
 			}
 			return minEval;
@@ -283,22 +286,22 @@ public class ClientSarg implements Runnable {
 
 	}
 
-	private boolean playingFieldDebugger(PlayingField currentField) {
-		boolean error = true;
-		for (int row = 0; row < currentField.playfield.length; row++) {
-            for (int col = 0; col < currentField.playfield[row].length; col++) {
-            	
-            	int curVal = currentField.playfield[row][col];
-            	int r = row; int c = col;
-            	if(curVal != 0 && curVal != -1) {
-            		for (Token token : currentField.tokenPositions) {
-						if(token.x == r && token.y == col) error = false;
-					}
-            	}
-            	
-            }
-        }
-		return error;
-	}
+//	private boolean playingFieldDebugger(PlayingField currentField) {
+//		boolean error = true;
+//		for (int row = 0; row < currentField.playfield.length; row++) {
+//            for (int col = 0; col < currentField.playfield[row].length; col++) {
+//            	
+//            	int curVal = currentField.playfield[row][col];
+//            	int r = row; int c = col;
+//            	if(curVal != 0 && curVal != -1) {
+//            		for (Token token : currentField.tokenPositions) {
+//						if(token.x == r && token.y == col) error = false;
+//					}
+//            	}
+//            	
+//            }
+//        }
+//		return error;
+//	}
 	
 }
