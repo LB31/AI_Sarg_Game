@@ -16,6 +16,11 @@ import lenz.htw.sarg.net.NetworkClient;
 
 public class ClientSarg implements Runnable {
 	private NetworkClient nc;
+	
+	private int timeLimit;
+	private int latency;
+	
+	private boolean timerHasFinished;
 
 	private String playerName;
 	private int playerNumber;
@@ -38,7 +43,7 @@ public class ClientSarg implements Runnable {
 		}
 	};
 
-	private int searchDepth = 6;
+	private int searchDepth = 10;
 
 	private Token bestTokenToMove;
 
@@ -103,9 +108,9 @@ public class ClientSarg implements Runnable {
 
 			initialize();
 
-			// Debug
-//			System.out.println("Timelimit " + nc.getTimeLimitInSeconds());
-//			System.out.println("getExpectedNetworkLatencyInMilliseconds " + nc.getExpectedNetworkLatencyInMilliseconds());
+			timeLimit = nc.getTimeLimitInSeconds();
+			latency = nc.getExpectedNetworkLatencyInMilliseconds();
+
 			if (playerNumber == 0)
 				for (Token[] row : mainField.playfield) {
 					System.out.println(Arrays.toString(row));
@@ -122,12 +127,26 @@ public class ClientSarg implements Runnable {
 			Move receivedMove = nc.receiveMove();
 			if (receivedMove == null) {
 				// ich bin dran
+				AlarmClockThread act = new AlarmClockThread(timeLimit, latency, this);
 				Move move = calculateMove();
-				nc.sendMove(move);
+				if(!timerHasFinished && move != null) {
+					act.timer.cancel();
+					nc.sendMove(move);
+					bestTokenToMove = null;
+					System.out.println("ready before timer");
+				}
+
 			} else {
 				updatePlayfield(receivedMove, false);
+				timerHasFinished = false;
 			}
 		}
+	}
+	
+	public void sendMove() {
+		timerHasFinished = true;
+		nc.sendMove(new Move(bestTokenToMove.x, bestTokenToMove.y));
+		bestTokenToMove = null;
 	}
 
 	private PlayingField newPlayingFieldCopy(PlayingField pf) {
@@ -146,11 +165,7 @@ public class ClientSarg implements Runnable {
 		alphaBetaFields.push(newPlayingFieldCopy(mainField));
 		AlphaBeta(searchDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, 1);
 		alphaBetaFields.empty();
-		System.out.println(pruningCounter + " times geprunt von Spieler " + playerNumber);
 
-//		Token[] myTokens = mainField.tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
-//		int randomNum = ThreadLocalRandom.current().nextInt(0, myTokens.length);
-//		Token token = myTokens[randomNum];
 		Token token = bestTokenToMove;
 		move = new Move(token.x, token.y);
 
@@ -239,7 +254,7 @@ public class ClientSarg implements Runnable {
 	 * 
 	 * @param player: 1 = max, 2 = min, 3 = min
 	 */
-	private int AlphaBeta(int depth, int alpha, int beta, int player) {
+	private float AlphaBeta(int depth, float alpha, float beta, int player) {
 // TODO Züge sortieren, z.B. danach, wv Felder bis zum Punkt noch gegangen werden müssen
 
 		if (depth == 0 /* TODO game over in current position */) {
@@ -247,39 +262,38 @@ public class ClientSarg implements Runnable {
 		}
 
 		if (player == 1) {
-			int maxEval = alpha;
+			float maxEval = alpha;
 			Token[] currentTokens = alphaBetaFields.peek().tokenPositions.stream().filter(t -> t.mine)
 					.toArray(Token[]::new);
 			// start with Tokens with the shortest way to go, to find the best move faster
 			Arrays.sort(currentTokens, Comparator.comparing(Token::getFieldsToGo));
 			for (Token token : currentTokens) {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
-				int eval = AlphaBeta(depth - 1, maxEval, beta, 2);
+				float eval = AlphaBeta(depth - 1, maxEval, beta, 2);
 				alphaBetaFields.pop(); // undo move
 //				maxEval = Math.max(maxEval, eval);
 				if (eval > maxEval) {
 					maxEval = eval;
-					if (depth == searchDepth)
+					if (depth == searchDepth) {
 						bestTokenToMove = token;
+					}
 					if (maxEval >= beta) {
 						pruningCounter++;
 						break; // pruning
 					}
-
 				}
-
 			}
 			return maxEval;
 
 		} else if (player == 2) {
-			int minEval = beta;
+			float minEval = beta;
 			Token[] currentTokens = alphaBetaFields.peek().tokenPositions.stream()
 					.filter(t -> t.owner == otherPlayers.get(0)).toArray(Token[]::new); // get is hard coded here
 			// start with Tokens with the shortest way to go, to find the best move faster
 			Arrays.sort(currentTokens, Comparator.comparing(Token::getFieldsToGo));
 			for (Token token : currentTokens) {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
-				int eval = AlphaBeta(depth - 1, alpha, minEval / 2, 3);
+				float eval = AlphaBeta(depth - 1, alpha, minEval, 3);
 				alphaBetaFields.pop(); // undo move
 				if (eval < minEval) {
 					minEval = eval;
@@ -292,14 +306,14 @@ public class ClientSarg implements Runnable {
 			}
 			return minEval;
 		} else {
-			int minEval = beta;
+			float minEval = beta;
 			Token[] currentTokens = alphaBetaFields.peek().tokenPositions.stream()
 					.filter(t -> t.owner == otherPlayers.get(1)).toArray(Token[]::new); // get is hard coded here
 			// start with Tokens with the shortest way to go, to find the best move faster
 			Arrays.sort(currentTokens, Comparator.comparing(Token::getFieldsToGo));
 			for (Token token : currentTokens) {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
-				int eval = AlphaBeta(depth - 1, alpha, minEval / 2, 1);
+				float eval = AlphaBeta(depth - 1, alpha, minEval, 1);
 				alphaBetaFields.pop(); // undo move
 				if (eval < minEval) {
 					minEval = eval;
@@ -314,31 +328,38 @@ public class ClientSarg implements Runnable {
 
 	}
 
-	private int calculateRating(PlayingField currentField) {
-		int rating = 0;
+	private float calculateRating(PlayingField currentField) {
+		float rating = 0;
 		// Token amounts
 		rating += evaFunc.a * currentField.tokenPositions.stream().filter(t -> t.mine).count();
 		rating -= evaFunc.b * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(0)).count();
 		rating -= evaFunc.b * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(1)).count();
+//		if (playerNumber == 0)
+//			System.out.println(rating + " only token amounts");
 		// Scores
 		rating += evaFunc.c * currentField.scores[playerNumber];
 		rating -= evaFunc.d * currentField.scores[otherPlayers.get(0)];
 		rating -= evaFunc.d * currentField.scores[otherPlayers.get(1)];
+//		if (playerNumber == 0)
+//			System.out.println(rating + " token amounts and scores");
 		// Winning / losing
 		if (currentField.scores[playerNumber] == 5) {
-			rating += Integer.MAX_VALUE; // you would win
+			rating = 100000; // you would win
+//			System.out.println("I SEE CHANCES " + rating);
 		}
 		if (currentField.scores[otherPlayers.get(0)] == 5 || currentField.scores[otherPlayers.get(1)] == 5) {
-			rating -= Integer.MIN_VALUE; // you would lose
+			rating = -100000; // you would lose
+//			System.out.println("I DON'T WANT TO GO as player " + playerNumber + " " + rating);
 		}
+
 		// Distances to make a point
 		int distanceToWin = 0;
-		Token[] myTokens = currentField.tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);	
+		Token[] myTokens = currentField.tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
 		for (Token token : myTokens) {
 			distanceToWin += token.fieldsToGo;
 		}
 		rating -= evaFunc.h * distanceToWin;
-		
+
 		// TODO
 
 		return rating;

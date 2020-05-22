@@ -16,19 +16,16 @@ public class EvaluationFunction {
 	// Distance to score
 	public float h; // only own
 
-	public EvaluationFunction(float a, float b, float c, float d, float e, float f, float g, float h, float i,
-			float j) {
+	public EvaluationFunction(float a, float b, float c, float d, /* float e, float f, float g, */ float h) {
 		super();
 		this.a = a;
 		this.b = b;
 		this.c = c;
 		this.d = d;
-		this.e = e;
-		this.f = f;
-		this.g = g;
+//		this.e = e;
+//		this.f = f;
+//		this.g = g;
 		this.h = h;
-//		this.i = i;
-//		this.j = j;
 	}
 	
 
