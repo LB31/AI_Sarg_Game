@@ -39,7 +39,7 @@ public class Connector {
 		EvaluationFunction[] evas = new EvaluationFunction[] {eva0, eva1, eva2};
 
 		for (int i = 0; i < 3; i++) {
-			System.out.println(evas[i].a);
+			System.out.println(evas[i].a + " eva a");
 			new Thread(new ClientSarg("Player " + i, evas[i])).start();
 			
 		}

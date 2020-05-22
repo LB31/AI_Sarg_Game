@@ -43,7 +43,7 @@ public class ClientSarg implements Runnable {
 		}
 	};
 
-	private int searchDepth = 10;
+	private int searchDepth = 6;
 
 	private Token bestTokenToMove;
 
@@ -137,7 +137,7 @@ public class ClientSarg implements Runnable {
 					act.timer.cancel();
 					nc.sendMove(move);
 					bestTokenToMove = null;
-					System.out.println("ready before timer");
+//					System.out.println("ready before timer");
 				}
 
 			} else {
@@ -178,10 +178,10 @@ public class ClientSarg implements Runnable {
 
 	private Token emergencyToken() {
 		Token token;
-		Token[] myTokens = alphaBetaFields.peek().tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
+		Token[] myTokens = mainField.tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
 		Arrays.sort(myTokens, Comparator.comparing(Token::getFieldsToGo));
 		token = myTokens[0];
-
+		System.out.println("EMERGENCY");
 		return token;
 	}
 
@@ -292,8 +292,8 @@ public class ClientSarg implements Runnable {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
 				float eval = AlphaBeta(depth - 1, maxEval, beta, 2);
 				alphaBetaFields.pop(); // undo move
-				if (depth == searchDepth && playerNumber == 0)
-					System.out.println(eval + " evaluation");
+//				if (depth == searchDepth && playerNumber == 0)
+//					System.out.println(eval + " evaluation");
 				if (eval > maxEval) {
 					maxEval = eval;
 					if (depth == searchDepth) {
