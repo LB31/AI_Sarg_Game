@@ -16,7 +16,7 @@ public class Connector {
 			}
 		};
 		
-		EvaluationFunction eva1 = new EvaluationFunction(0, 0, 0, 0, 0);/* {
+		EvaluationFunction eva1 = new EvaluationFunction(0, 0, 0, 0, 0) {
 			{
 				a = 5; // own tokens
 				b = 5; // enemy tokens
@@ -24,9 +24,9 @@ public class Connector {
 				d = 2; // enemy scores
 				h = 0; // own distances to win
 			}
-		};*/
+		};
 		
-		EvaluationFunction eva2 = new EvaluationFunction(0, 0, 0, 0, 0);/* {
+		EvaluationFunction eva2 = new EvaluationFunction(0, 0, 0, 0, 0) {
 			{
 				a = 2; // own tokens
 				b = 10; // enemy tokens
@@ -34,7 +34,7 @@ public class Connector {
 				d = 10; // enemy scores
 				h = 2; // own distances to win
 			}
-		};*/
+		};
 
 		EvaluationFunction[] evas = new EvaluationFunction[] {eva0, eva1, eva2};
 

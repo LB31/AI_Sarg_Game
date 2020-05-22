@@ -16,10 +16,10 @@ import lenz.htw.sarg.net.NetworkClient;
 
 public class ClientSarg implements Runnable {
 	private NetworkClient nc;
-	
+
 	private int timeLimit;
 	private int latency;
-	
+
 	private boolean timerHasFinished;
 
 	private String playerName;
@@ -57,6 +57,10 @@ public class ClientSarg implements Runnable {
 	private void initialize() {
 		playerNumber = nc.getMyPlayerNumber(); // 0 = red, 1 = green, 2 = blue
 		otherPlayers.remove(playerNumber);
+		if (playerNumber == 1) { // to keep the right order for alpha-beta pruning
+			otherPlayers.set(0, 2);
+			otherPlayers.set(1, 0);
+		}
 
 		mainField = new PlayingField();
 
@@ -129,7 +133,7 @@ public class ClientSarg implements Runnable {
 				// ich bin dran
 				AlarmClockThread act = new AlarmClockThread(timeLimit, latency, this);
 				Move move = calculateMove();
-				if(!timerHasFinished && move != null) {
+				if (!timerHasFinished && move != null) {
 					act.timer.cancel();
 					nc.sendMove(move);
 					bestTokenToMove = null;
@@ -142,21 +146,15 @@ public class ClientSarg implements Runnable {
 			}
 		}
 	}
-	
+
 	public void sendMove() {
 		timerHasFinished = true;
-		nc.sendMove(new Move(bestTokenToMove.x, bestTokenToMove.y));
+		Token token = bestTokenToMove;
+		if(token == null) {
+			token = emergencyToken(); 
+		}
+		nc.sendMove(new Move(token.x, token.y));
 		bestTokenToMove = null;
-	}
-
-	private PlayingField newPlayingFieldCopy(PlayingField pf) {
-		/*
-		 * Not cloning the actual Token objects is ok, because even setting them to null
-		 * don't destroy them when they are still referenced somewhere else in the stack
-		 */
-		Token[][] playfieldCopy = Arrays.stream(pf.playfield).map(Token[]::clone).toArray(Token[][]::new);
-		int[] scoresCopy = Arrays.copyOf(pf.scores, pf.scores.length);
-		return new PlayingField(playfieldCopy, new ArrayList<>(pf.tokenPositions), scoresCopy);
 	}
 
 	private Move calculateMove() {
@@ -167,9 +165,34 @@ public class ClientSarg implements Runnable {
 		alphaBetaFields.empty();
 
 		Token token = bestTokenToMove;
+
+		// when no move was found just pick one
+		if (token == null) {
+			token = emergencyToken();
+		}
+
 		move = new Move(token.x, token.y);
 
 		return move;
+	}
+
+	private Token emergencyToken() {
+		Token token;
+		Token[] myTokens = alphaBetaFields.peek().tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
+		Arrays.sort(myTokens, Comparator.comparing(Token::getFieldsToGo));
+		token = myTokens[0];
+
+		return token;
+	}
+
+	private PlayingField newPlayingFieldCopy(PlayingField pf) {
+		/*
+		 * Not cloning the actual Token objects is ok, because even setting them to null
+		 * don't destroy them when they are still referenced somewhere else in the stack
+		 */
+		Token[][] playfieldCopy = Arrays.stream(pf.playfield).map(Token[]::clone).toArray(Token[][]::new);
+		int[] scoresCopy = Arrays.copyOf(pf.scores, pf.scores.length);
+		return new PlayingField(playfieldCopy, new ArrayList<>(pf.tokenPositions), scoresCopy);
 	}
 
 	public void updatePlayfield(Move move, boolean alphaBeta) {
@@ -255,9 +278,7 @@ public class ClientSarg implements Runnable {
 	 * @param player: 1 = max, 2 = min, 3 = min
 	 */
 	private float AlphaBeta(int depth, float alpha, float beta, int player) {
-// TODO Züge sortieren, z.B. danach, wv Felder bis zum Punkt noch gegangen werden müssen
-
-		if (depth == 0 /* TODO game over in current position */) {
+		if (depth == 0) {
 			return calculateRating(alphaBetaFields.peek());
 		}
 
@@ -271,7 +292,8 @@ public class ClientSarg implements Runnable {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
 				float eval = AlphaBeta(depth - 1, maxEval, beta, 2);
 				alphaBetaFields.pop(); // undo move
-//				maxEval = Math.max(maxEval, eval);
+				if (depth == searchDepth && playerNumber == 0)
+					System.out.println(eval + " evaluation");
 				if (eval > maxEval) {
 					maxEval = eval;
 					if (depth == searchDepth) {
@@ -283,6 +305,7 @@ public class ClientSarg implements Runnable {
 					}
 				}
 			}
+
 			return maxEval;
 
 		} else if (player == 2) {
@@ -293,7 +316,7 @@ public class ClientSarg implements Runnable {
 			Arrays.sort(currentTokens, Comparator.comparing(Token::getFieldsToGo));
 			for (Token token : currentTokens) {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
-				float eval = AlphaBeta(depth - 1, alpha, minEval, 3);
+				float eval = AlphaBeta(depth - 1, alpha, minEval * 0.5f, 3);
 				alphaBetaFields.pop(); // undo move
 				if (eval < minEval) {
 					minEval = eval;
@@ -305,6 +328,7 @@ public class ClientSarg implements Runnable {
 				}
 			}
 			return minEval;
+
 		} else {
 			float minEval = beta;
 			Token[] currentTokens = alphaBetaFields.peek().tokenPositions.stream()
@@ -313,7 +337,7 @@ public class ClientSarg implements Runnable {
 			Arrays.sort(currentTokens, Comparator.comparing(Token::getFieldsToGo));
 			for (Token token : currentTokens) {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
-				float eval = AlphaBeta(depth - 1, alpha, minEval, 1);
+				float eval = AlphaBeta(depth - 1, alpha, minEval * 0.5f, 1);
 				alphaBetaFields.pop(); // undo move
 				if (eval < minEval) {
 					minEval = eval;
@@ -330,6 +354,17 @@ public class ClientSarg implements Runnable {
 
 	private float calculateRating(PlayingField currentField) {
 		float rating = 0;
+
+		// Winning / losing
+		if (currentField.scores[playerNumber] == 5) {
+			return 100000; // you would win
+//			System.out.println("I SEE CHANCES " + rating);
+		}
+		if (currentField.scores[otherPlayers.get(0)] == 5 || currentField.scores[otherPlayers.get(1)] == 5) {
+			return -100000; // you would lose
+//			System.out.println("I DON'T WANT TO GO as player " + playerNumber + " " + rating);
+		}
+
 		// Token amounts
 		rating += evaFunc.a * currentField.tokenPositions.stream().filter(t -> t.mine).count();
 		rating -= evaFunc.b * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(0)).count();
@@ -342,15 +377,6 @@ public class ClientSarg implements Runnable {
 		rating -= evaFunc.d * currentField.scores[otherPlayers.get(1)];
 //		if (playerNumber == 0)
 //			System.out.println(rating + " token amounts and scores");
-		// Winning / losing
-		if (currentField.scores[playerNumber] == 5) {
-			rating = 100000; // you would win
-//			System.out.println("I SEE CHANCES " + rating);
-		}
-		if (currentField.scores[otherPlayers.get(0)] == 5 || currentField.scores[otherPlayers.get(1)] == 5) {
-			rating = -100000; // you would lose
-//			System.out.println("I DON'T WANT TO GO as player " + playerNumber + " " + rating);
-		}
 
 		// Distances to make a point
 		int distanceToWin = 0;
