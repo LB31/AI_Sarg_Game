@@ -15,6 +15,15 @@ public class EvaluationFunction {
 	
 	// Distance to score
 	public float h; // only own
+	
+	/*
+	 * 0 = token amount own
+	 * 1 = token amount enemies
+	 * 2 = score own
+	 * 3 = score enemies
+	 * 4 = own distance to score
+	 */
+	public float[] cs;
 
 	public EvaluationFunction(float a, float b, float c, float d, /* float e, float f, float g, */ float h) {
 		super();
@@ -26,6 +35,10 @@ public class EvaluationFunction {
 //		this.f = f;
 //		this.g = g;
 		this.h = h;
+	}
+	
+	public EvaluationFunction(float[] evaVals) {
+		cs = evaVals;
 	}
 	
 

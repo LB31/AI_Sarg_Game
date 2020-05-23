@@ -45,8 +45,11 @@ public class ClientSarg implements Runnable {
 
 	private int searchDepth = 6;
 
+	private long startTime;
+	private long endTime;
+	
 	private Token bestTokenToMove;
-
+	
 	private int pruningCounter;
 
 	public ClientSarg(String name, EvaluationFunction eva) throws IOException {
@@ -115,14 +118,19 @@ public class ClientSarg implements Runnable {
 			timeLimit = nc.getTimeLimitInSeconds();
 			latency = nc.getExpectedNetworkLatencyInMilliseconds();
 
-			if (playerNumber == 0)
-				for (Token[] row : mainField.playfield) {
-					System.out.println(Arrays.toString(row));
-				}
+//			if (playerNumber == 0)
+//				for (Token[] row : mainField.playfield) {
+//					System.out.println(Arrays.toString(row));
+//				}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+//		try {
+//			Thread.sleep(30000);
+//		} catch (InterruptedException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 		update();
 	}
 
@@ -159,11 +167,12 @@ public class ClientSarg implements Runnable {
 
 	private Move calculateMove() {
 		Move move = null;
-
+		startTime = System.currentTimeMillis();
 		alphaBetaFields.push(newPlayingFieldCopy(mainField));
 		AlphaBeta(searchDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, 1);
 		alphaBetaFields.empty();
-
+		endTime = System.currentTimeMillis();
+		System.out.println(endTime - startTime + " duration");
 		Token token = bestTokenToMove;
 
 		// when no move was found just pick one
@@ -366,15 +375,15 @@ public class ClientSarg implements Runnable {
 		}
 
 		// Token amounts
-		rating += evaFunc.a * currentField.tokenPositions.stream().filter(t -> t.mine).count();
-		rating -= evaFunc.b * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(0)).count();
-		rating -= evaFunc.b * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(1)).count();
+		rating += evaFunc.cs[0] * currentField.tokenPositions.stream().filter(t -> t.mine).count();
+		rating -= evaFunc.cs[1] * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(0)).count();
+		rating -= evaFunc.cs[1] * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(1)).count();
 //		if (playerNumber == 0)
 //			System.out.println(rating + " only token amounts");
 		// Scores
-		rating += evaFunc.c * currentField.scores[playerNumber];
-		rating -= evaFunc.d * currentField.scores[otherPlayers.get(0)];
-		rating -= evaFunc.d * currentField.scores[otherPlayers.get(1)];
+		rating += evaFunc.cs[2] * currentField.scores[playerNumber];
+		rating -= evaFunc.cs[3] * currentField.scores[otherPlayers.get(0)];
+		rating -= evaFunc.cs[3] * currentField.scores[otherPlayers.get(1)];
 //		if (playerNumber == 0)
 //			System.out.println(rating + " token amounts and scores");
 
@@ -384,7 +393,7 @@ public class ClientSarg implements Runnable {
 		for (Token token : myTokens) {
 			distanceToWin += token.fieldsToGo;
 		}
-		rating -= evaFunc.h * distanceToWin;
+		rating -= evaFunc.cs[4] * distanceToWin;
 
 		// TODO
 
