@@ -58,16 +58,11 @@ public class Connector {
 		getTopThree(secondBests);
 		
 		mutate(evas[0]);
-//		int winner = Server.runOnceAndReturnTheWinner(4);
-//		System.out.println(winner + " winner");
-//		
-//		for (int i = 0; i < 3; i++) {
-//			System.out.println(evas[i].cs[i] + " eva a");
-//			new Thread(new ClientSarg("Player " + i, evas[i])).start();
-//		}
-//		
-//		winner = Server.runOnceAndReturnTheWinner(4);
-//		System.out.println(winner + " winner");
+		produceMeanChild(evas[0].cs, evas[1].cs);
+
+		// TODO
+		
+		
 	}
 
 	static void assignEvas() {
@@ -134,7 +129,6 @@ public class Connector {
 	}
 
 	static void mutate(EvaluationFunction eva) {
-		System.err.println(Arrays.toString(eva.cs) + " eva in");
 		for (int i = 0; i < eva.cs.length; i++) {
 			float c = eva.cs[i];
 			if (c >= coefficientMax * 0.5f)
@@ -142,7 +136,18 @@ public class Connector {
 			else
 				eva.cs[i] -= c * 0.5f;
 		}
-		System.err.println(Arrays.toString(eva.cs) + " eva out");
+		// TODO do something with the result
+	}
+	
+	static EvaluationFunction produceMeanChild(float[] mother, float[] notTheMother) {
+		 EvaluationFunction eva = new EvaluationFunction(new float[] { 
+				(mother[0] + notTheMother[0]) * 0.5f, // own tokens
+				(mother[1] + notTheMother[1]) * 0.5f, // enemy tokens
+				(mother[2] + notTheMother[2]) * 0.5f, // own score
+				(mother[3] + notTheMother[3]) * 0.5f, // enemy scores
+				(mother[4] + notTheMother[4]) * 0.5f // own distances to win
+		});
+		 return eva;
 	}
 
 	static void getTopThree(int[] arr) {
