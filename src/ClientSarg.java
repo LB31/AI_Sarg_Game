@@ -51,6 +51,8 @@ public class ClientSarg implements Runnable {
 	private Token bestTokenToMove;
 	
 	private int pruningCounter;
+	
+	private boolean gameOver;
 
 	public ClientSarg(String name, EvaluationFunction eva) throws IOException {
 		playerName = name;
@@ -135,19 +137,22 @@ public class ClientSarg implements Runnable {
 	}
 
 	private void update() {
-		while (true) {
+		while (!gameOver) {
+			if(Arrays.stream(mainField.scores).anyMatch(i -> i == 5)) {
+				System.out.println(Arrays.toString(mainField.scores));
+				gameOver = true;
+				return;
+			}
 			Move receivedMove = nc.receiveMove();
 			if (receivedMove == null) {
-				// ich bin dran
+				// my move
 				AlarmClockThread act = new AlarmClockThread(timeLimit, latency, this);
 				Move move = calculateMove();
 				if (!timerHasFinished && move != null) {
 					act.timer.cancel();
 					nc.sendMove(move);
 					bestTokenToMove = null;
-//					System.out.println("ready before timer");
 				}
-
 			} else {
 				updatePlayfield(receivedMove, false);
 				timerHasFinished = false;
@@ -167,12 +172,16 @@ public class ClientSarg implements Runnable {
 
 	private Move calculateMove() {
 		Move move = null;
-		startTime = System.currentTimeMillis();
+		
+//		startTime = System.currentTimeMillis();
+		
 		alphaBetaFields.push(newPlayingFieldCopy(mainField));
 		AlphaBeta(searchDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, 1);
 		alphaBetaFields.empty();
-		endTime = System.currentTimeMillis();
-		System.out.println(endTime - startTime + " duration");
+		
+//		endTime = System.currentTimeMillis();
+//		System.out.println(endTime - startTime + " duration");
+		
 		Token token = bestTokenToMove;
 
 		// when no move was found just pick one
