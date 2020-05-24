@@ -38,12 +38,16 @@ public class TrainingServer implements Runnable {
 			}
 		}
 		winner = Server.runOnceAndReturnTheWinner(4);
-
-		secondBest = getSecondBest(sargFamily[0].getScores());
+		
 		winner = getBest(sargFamily[0].getScores());
+		secondBest = getSecondBest(sargFamily[0].getScores());
+		
+		winner = getEvaNum(winner);
+		secondBest = getEvaNum(secondBest);
+		
 
-		System.out.println(getEvaNum(winner) + " eva winner");
-		System.err.println(getEvaNum(secondBest) + " eva second best");
+		System.err.println(winner + " eva winner");
+		System.err.println(secondBest + " eva second best");
 
 	}
 	
