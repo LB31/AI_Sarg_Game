@@ -30,7 +30,7 @@ public class TrainingServer implements Runnable {
 			}
 		}
 		winner = Server.runOnceAndReturnTheWinner(4);
-		
+		System.err.println(winner + " winner of game " + evaIndex);
 		
 	}
 

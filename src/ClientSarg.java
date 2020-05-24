@@ -138,6 +138,7 @@ public class ClientSarg implements Runnable {
 
 	private void update() {
 		while (!gameOver) {
+			// Catch the end of the game
 			if(Arrays.stream(mainField.scores).anyMatch(i -> i == 5)) {
 				System.out.println(Arrays.toString(mainField.scores));
 				gameOver = true;
@@ -198,6 +199,7 @@ public class ClientSarg implements Runnable {
 		Token token;
 		Token[] myTokens = mainField.tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
 		Arrays.sort(myTokens, Comparator.comparing(Token::getFieldsToGo));
+		if(myTokens.length == 0) return null;
 		token = myTokens[0];
 		System.out.println("EMERGENCY");
 		return token;
