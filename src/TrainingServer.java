@@ -34,24 +34,29 @@ public class TrainingServer implements Runnable {
 				sargFamily[i - evaIndex] = new ClientSarg("Player " + i, evas[i]);
 				new Thread(sargFamily[i - evaIndex]).start();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 		winner = Server.runOnceAndReturnTheWinner(4);
-		if (winner == 0) // for the 0 bug
-			winner = 2;
-		winner = sargFamily[winner - 1].getPlayerNumber() + evaIndex;
-		secondBest = getSecondBest(sargFamily[0].getScores()) + evaIndex;
 
-		System.out.println(Arrays.toString(sargFamily[0].getScores()) + " scores");
-		System.err.println(getSecondBest(sargFamily[0].getScores()) + " second score owner");
+		secondBest = getSecondBest(sargFamily[0].getScores());
+		winner = getBest(sargFamily[0].getScores());
 
-		System.err.println(winner + " winner of game " + evaIndex);
+		System.out.println(getEvaNum(winner) + " eva winner");
+		System.err.println(getEvaNum(secondBest) + " eva second best");
+
+	}
+	
+	private int getEvaNum(int index) {
+		int evaNum = 0;
 		for (int j = 0; j < sargFamily.length; j++) {
-			System.err.println(sargFamily[j].getPlayerNumber() + " playernumber for eva" + (j + evaIndex));
+			if (index == sargFamily[j].getPlayerNumber()) {
+				evaNum = j + evaIndex;
+				break;
+			}
 		}
-
+		
+		return evaNum;
 	}
 
 	private int getSecondBest(int[] arr) {

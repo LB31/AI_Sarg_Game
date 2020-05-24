@@ -59,7 +59,6 @@ public class ClientSarg implements Runnable {
 		evaFunc = eva;
 	}
 	
-
 	public int getPlayerNumber() {
 		return playerNumber;
 	}

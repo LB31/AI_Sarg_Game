@@ -7,6 +7,8 @@ public class PlayingField {
 	public List<Token> tokenPositions = new ArrayList<Token>();
 	public int[] scores = new int[3];
 	
+	public int[] evaNums = new int[3];
+	
 	public PlayingField(Token[][] playfield, List<Token> tokenPositions, int[] scores) {
 		this.playfield = playfield;
 		this.tokenPositions = tokenPositions;
