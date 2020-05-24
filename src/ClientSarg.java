@@ -58,6 +58,15 @@ public class ClientSarg implements Runnable {
 		playerName = name;
 		evaFunc = eva;
 	}
+	
+
+	public int getPlayerNumber() {
+		return playerNumber;
+	}
+	
+	public int[] getScores() {
+		return mainField.scores;
+	}
 
 	private void initialize() {
 		playerNumber = nc.getMyPlayerNumber(); // 0 = red, 1 = green, 2 = blue
@@ -140,7 +149,7 @@ public class ClientSarg implements Runnable {
 		while (!gameOver) {
 			// Catch the end of the game
 			if(Arrays.stream(mainField.scores).anyMatch(i -> i == 5)) {
-				System.out.println(Arrays.toString(mainField.scores));
+//				System.out.println(Arrays.toString(mainField.scores));
 				gameOver = true;
 				return;
 			}

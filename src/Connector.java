@@ -3,6 +3,7 @@ import java.util.Arrays;
 
 public class Connector {
 	static int[] wins = new int[9];
+	static int[] secondBests = new int[9];
 
 	static long waitBeforeStart = 2000; // milliseconds
 	
@@ -11,7 +12,7 @@ public class Connector {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		assignEvas();
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 1; i++) {
 			TrainingServer ts1 = new TrainingServer(evas, 0);
 			Thread a = new Thread(ts1);
 			a.start();
@@ -32,18 +33,18 @@ public class Connector {
 			b.join();
 			c.join();
 			
-			int winner1 = ts1.getWinner() == 0 ? 1 : ts1.getWinner();
-			int winner2 = ts2.getWinner() == 0 ? 1 : ts2.getWinner();
-			int winner3 = ts3.getWinner() == 0 ? 1 : ts3.getWinner();
+			int winner1 = ts1.getWinner();
+			int winner2 = ts2.getWinner();
+			int winner3 = ts3.getWinner();
 
-			wins[winner1-1]++;
-			wins[winner2+2]++;
-			wins[winner3+5]++;
+			wins[winner1]++;
+			wins[winner2]++;
+			wins[winner3]++;
 
 		}
 		
 		System.out.println(Arrays.toString(wins) + " wins");
-
+		getTopThree();
 //		int winner = Server.runOnceAndReturnTheWinner(4);
 //		System.out.println(winner + " winner");
 //		
@@ -127,4 +128,29 @@ public class Connector {
 
 	}
 
+	static void getTopThree() {
+		EvaluationFunction[] neoEvas = new EvaluationFunction[9];
+		
+		int highest = wins[0];
+		int highestIndex = 0;
+		for (int i = 1; i < wins.length; i++) {
+			if(i % 3 == 0) { // the next round of clients
+				neoEvas[i-3] = evas[highestIndex];
+				System.out.println("highestIndex " + highestIndex);
+				highest = wins[i];
+				highestIndex = i;
+				
+				continue;
+			}
+			if(wins[i] > highest) {
+				highest = wins[i]; 
+				highestIndex = i;
+			}
+			if(i == wins.length - 1) { // last round
+				neoEvas[i-2] = evas[highestIndex];
+				System.out.println("highestIndex " + highestIndex);
+			}
+			
+		}
+	}
 }
