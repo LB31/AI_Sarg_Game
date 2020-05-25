@@ -388,7 +388,10 @@ public class ClientSarg implements Runnable {
 	
 	// For the final fight
 	public static void main(String[] args) throws IOException {
-		ClientSarg cs = new ClientSarg("Leonid", new EvaluationFunction(new float[] {9.2404995f, 0.67375f, 9.08125f, 7.2682505f, 0.341775f}));
+		float[] a = new float[] {9.2404995f, 0.67375f, 9.08125f, 7.2682505f, 0.341775f};
+		float[] b = new float[] {8.449937f, 2.1540625f, 8.578125f, 6.94975f, 0.49682498f};
+		float[] c = new float[] {8.245625f, 5.760625f, 8.635f, 7.90875f, 0.45412496f};
+		ClientSarg cs = new ClientSarg("Leonid", new EvaluationFunction(a));
 		new Thread(cs).start();
 	}
 	
