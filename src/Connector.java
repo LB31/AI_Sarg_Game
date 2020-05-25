@@ -10,8 +10,8 @@ public class Connector {
 	static long waitBeforeStart = 2000; // milliseconds
 	static float coefficientMax = 10;
 
-	static int matchAmount = 5;
-	static int generationAmount = 2;
+	static int matchAmount = 10;
+	static int generationAmount = 10;
 
 	static List<EvaluationFunction> evas;
 	static List<EvaluationFunction> neoEvas;
@@ -113,70 +113,77 @@ public class Connector {
 	}
 
 	static void assignEvas() {
+		// the token brain 
 		EvaluationFunction eva0 = new EvaluationFunction(new float[] { 
-				2, // own tokens
-				8, // enemy tokens
-				8, // own score
-				1, // enemy scores
+				8, // own tokens
+				7, // enemy tokens
+				4, // own score
+				3, // enemy scores
 				0.2f // own distances to win
 		});
+		// the score brain
 		EvaluationFunction eva1 = new EvaluationFunction(new float[] { 
-				5, // own tokens
-				9, // enemy tokens
-				4, // own score
-				9, // enemy scores
+				4, // own tokens
+				3, // enemy tokens
+				8, // own score
+				7, // enemy scores
 				0.4f // own distances to win
 		});
+		// crazy random monkey
 		EvaluationFunction eva2 = new EvaluationFunction(new float[] { 
-				2, // own tokens
-				10, // enemy tokens
-				3, // own score
-				3, // enemy scores
-				0.7f // own distances to win
-		});
-
-		EvaluationFunction eva3 = new EvaluationFunction(new float[] { 
-				6, // own tokens
-				8, // enemy tokens
-				4, // own score
-				7, // enemy scores
-				0.5f // own distances to win
-		});
-		EvaluationFunction eva4 = new EvaluationFunction(new float[] { 
-				5, // own tokens
-				2, // enemy tokens
-				6, // own score
-				5, // enemy scores
+				9, // own tokens
+				1, // enemy tokens
+				8, // own score
+				2, // enemy scores
 				0.8f // own distances to win
 		});
+		// the token brain 
+		EvaluationFunction eva3 = new EvaluationFunction(new float[] { 
+				7, // own tokens
+				9, // enemy tokens
+				2, // own score
+				4, // enemy scores
+				0.1f // own distances to win
+		});
+		// the score brain
+		EvaluationFunction eva4 = new EvaluationFunction(new float[] { 
+				3, // own tokens
+				4, // enemy tokens
+				7, // own score
+				9, // enemy scores
+				0.9f // own distances to win
+		});
+		// crazy donkey
 		EvaluationFunction eva5 = new EvaluationFunction(new float[] { 
 				2, // own tokens
 				9, // enemy tokens
-				6, // own score
-				8, // enemy scores
-				0.7f // own distances to win
-		});
-
-		EvaluationFunction eva6 = new EvaluationFunction(new float[] { 
-				2, // own tokens
-				5, // enemy tokens
-				8, // own score
+				3, // own score
 				10, // enemy scores
-				0.2f // own distances to win
+				0.3f // own distances to win
 		});
+		// the token brain 
+		EvaluationFunction eva6 = new EvaluationFunction(new float[] { 
+				7, // own tokens
+				7, // enemy tokens
+				2, // own score
+				2, // enemy scores
+				0.6f // own distances to win
+		});
+		// the score brain
 		EvaluationFunction eva7 = new EvaluationFunction(new float[] { 
 				5, // own tokens
 				4, // enemy tokens
-				2, // own score
-				2, // enemy scores
-				0.5f // own distances to win
+				7, // own score
+				9, // enemy scores
+				0.9f // own distances to win
 		});
+		// crazy american president
 		EvaluationFunction eva8 = new EvaluationFunction(new float[] { 
-				2, // own tokens
-				10, // enemy tokens
-				5, // own score
-				8, // enemy scores
-				0.3f // own distances to win
+				10, // own tokens
+				9, // enemy tokens
+				8, // own score
+				7, // enemy scores
+				0.6f // own distances to win
 		});
 
 //		evas = new EvaluationFunction[] { eva0, eva1, eva2, eva3, eva4, eva5, eva6, eva7, eva8 };
@@ -199,23 +206,25 @@ public class Connector {
 
 	
 	static void mutate(EvaluationFunction eva) {
+		float changer = 0.3f;
 		for (int i = 0; i < eva.cs.length; i++) {
 			float c = eva.cs[i];
-			if (c >= coefficientMax * 0.5f)
-				eva.cs[i] += (coefficientMax - c) * 0.5f;
+			if (c >= coefficientMax * changer)
+				eva.cs[i] += (coefficientMax - c) * changer;
 			else
-				eva.cs[i] -= c * 0.5f;
+				eva.cs[i] -= c * changer;
 		}
-		// TODO do something with the result
+
 	}
 
 	static EvaluationFunction produceMeanChild(float[] mother, float[] notTheMother) {
-		EvaluationFunction eva = new EvaluationFunction(new float[] { (mother[0] + notTheMother[0]) * 0.5f, // own
-																											// tokens
-				(mother[1] + notTheMother[1]) * 0.5f, // enemy tokens
-				(mother[2] + notTheMother[2]) * 0.5f, // own score
-				(mother[3] + notTheMother[3]) * 0.5f, // enemy scores
-				(mother[4] + notTheMother[4]) * 0.5f // own distances to win
+		float changer = 0.5f;
+		EvaluationFunction eva = new EvaluationFunction(new float[] { 
+				(mother[0] + notTheMother[0]) * changer, // own // tokens																						
+				(mother[1] + notTheMother[1]) * changer, // enemy tokens
+				(mother[2] + notTheMother[2]) * changer, // own score
+				(mother[3] + notTheMother[3]) * changer, // enemy scores
+				(mother[4] + notTheMother[4]) * changer // own distances to win
 		});
 		return eva;
 	}

@@ -372,12 +372,10 @@ public class ClientSarg implements Runnable {
 		rating += evaFunc.cs[0] * currentField.tokenPositions.stream().filter(t -> t.mine).count();
 		rating -= evaFunc.cs[1] * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(0)).count();
 		rating -= evaFunc.cs[1] * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(1)).count();
-
 		// Scores
 		rating += evaFunc.cs[2] * currentField.scores[playerNumber];
 		rating -= evaFunc.cs[3] * currentField.scores[otherPlayers.get(0)];
 		rating -= evaFunc.cs[3] * currentField.scores[otherPlayers.get(1)];
-
 		// Distances to make a point
 		int distanceToWin = 0;
 		Token[] myTokens = currentField.tokenPositions.stream().filter(t -> t.mine).toArray(Token[]::new);
@@ -385,13 +383,12 @@ public class ClientSarg implements Runnable {
 			distanceToWin += token.fieldsToGo;
 		}
 		rating -= evaFunc.cs[4] * distanceToWin;
-
 		return rating;
 	}
 	
 	// For the final fight
 	public static void main(String[] args) throws IOException {
-		ClientSarg cs = new ClientSarg("Leonid", new EvaluationFunction(new float[] {9.8203125f, 0.48828125f, 9.498047f, 9.902344f, 0.01171875f}));
+		ClientSarg cs = new ClientSarg("Leonid", new EvaluationFunction(new float[] {9.2404995f, 0.67375f, 9.08125f, 7.2682505f, 0.341775f}));
 		new Thread(cs).start();
 	}
 	
