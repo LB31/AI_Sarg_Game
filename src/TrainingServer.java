@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 import lenz.htw.sarg.Server;
 
@@ -8,12 +9,12 @@ public class TrainingServer implements Runnable {
 	private int winner = -10;
 	private int secondBest = -10;
 
-	EvaluationFunction[] evas;
+	List<EvaluationFunction> evas;
 	int evaIndex;
 
 	ClientSarg[] sargFamily = new ClientSarg[3];
 
-	public TrainingServer(EvaluationFunction[] evas, int evaIndex) {
+	public TrainingServer(List<EvaluationFunction> evas, int evaIndex) {
 		this.evas = evas;
 		this.evaIndex = evaIndex;
 	}
@@ -31,7 +32,7 @@ public class TrainingServer implements Runnable {
 
 		for (int i = evaIndex; i < evaIndex + 3; i++) {
 			try {
-				sargFamily[i - evaIndex] = new ClientSarg("Player " + i, evas[i]);
+				sargFamily[i - evaIndex] = new ClientSarg("Player " + i, evas.get(i));
 				new Thread(sargFamily[i - evaIndex]).start();
 			} catch (IOException e) {
 				e.printStackTrace();
