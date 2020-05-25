@@ -10,15 +10,19 @@ public class Connector {
 	static long waitBeforeStart = 2000; // milliseconds
 	static float coefficientMax = 10;
 
-	static int matchAmount = 2;
-	static int generationAmount = 1;
+	static int matchAmount = 5;
+	static int generationAmount = 2;
 
 	static List<EvaluationFunction> evas;
 	static List<EvaluationFunction> neoEvas;
+	
+	// debug
+	static long startTime;
+	static long endTime;
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 		assignEvas();
-
+		startTime = System.currentTimeMillis();
 		for (int i = 0; i < generationAmount; i++) {
 
 			for (int j = 0; j < matchAmount; j++) {
@@ -60,7 +64,11 @@ public class Connector {
 
 			}
 
+			// keep the veterans of the last generation
+			if(i == generationAmount - 1) continue;
+			
 			neoEvas = new ArrayList<>();
+			
 
 			List<EvaluationFunction> winners = getTopThree(wins);
 			// Mutate the second best evas
@@ -82,73 +90,89 @@ public class Connector {
 			}
 			
 			evas = neoEvas;
+			
+			wins = new int[9];
+			secondBests = new int[9];
 
 		}
+	
 		System.out.println(Arrays.toString(wins) + " wins");
 		System.err.println(Arrays.toString(secondBests) + " secondBests");
-
-		getTopThree(wins);
-		getTopThree(secondBests);
-
-//		mutate(evas[0]);
-//		produceMeanChild(evas[0].cs, evas[1].cs);
-
-		// TODO
+		for (EvaluationFunction eva : evas) {
+			System.out.println(Arrays.toString(eva.cs) + " neo eva");
+		}
+		List<EvaluationFunction> winners = getTopThree(wins);
+		for (EvaluationFunction eva : winners) {
+			System.err.println(Arrays.toString(eva.cs) + " absolute winner");
+		}
+		
+		
+		endTime = System.currentTimeMillis();
+		System.out.println((endTime - startTime) * 0.001 + " seconds for " + generationAmount + " generations a " + matchAmount + " matches");
 
 	}
 
 	static void assignEvas() {
-		EvaluationFunction eva0 = new EvaluationFunction(new float[] { 2, // own tokens
+		EvaluationFunction eva0 = new EvaluationFunction(new float[] { 
+				2, // own tokens
 				8, // enemy tokens
 				8, // own score
 				1, // enemy scores
 				0.2f // own distances to win
 		});
-		EvaluationFunction eva1 = new EvaluationFunction(new float[] { 5, // own tokens
+		EvaluationFunction eva1 = new EvaluationFunction(new float[] { 
+				5, // own tokens
 				9, // enemy tokens
 				4, // own score
 				9, // enemy scores
 				0.4f // own distances to win
 		});
-		EvaluationFunction eva2 = new EvaluationFunction(new float[] { 2, // own tokens
+		EvaluationFunction eva2 = new EvaluationFunction(new float[] { 
+				2, // own tokens
 				10, // enemy tokens
 				3, // own score
 				3, // enemy scores
 				0.7f // own distances to win
 		});
 
-		EvaluationFunction eva3 = new EvaluationFunction(new float[] { 6, // own tokens
+		EvaluationFunction eva3 = new EvaluationFunction(new float[] { 
+				6, // own tokens
 				8, // enemy tokens
 				4, // own score
 				7, // enemy scores
 				0.5f // own distances to win
 		});
-		EvaluationFunction eva4 = new EvaluationFunction(new float[] { 5, // own tokens
+		EvaluationFunction eva4 = new EvaluationFunction(new float[] { 
+				5, // own tokens
 				2, // enemy tokens
 				6, // own score
 				5, // enemy scores
 				0.8f // own distances to win
 		});
-		EvaluationFunction eva5 = new EvaluationFunction(new float[] { 2, // own tokens
+		EvaluationFunction eva5 = new EvaluationFunction(new float[] { 
+				2, // own tokens
 				9, // enemy tokens
 				6, // own score
 				8, // enemy scores
 				0.7f // own distances to win
 		});
 
-		EvaluationFunction eva6 = new EvaluationFunction(new float[] { 2, // own tokens
+		EvaluationFunction eva6 = new EvaluationFunction(new float[] { 
+				2, // own tokens
 				5, // enemy tokens
 				8, // own score
 				10, // enemy scores
 				0.2f // own distances to win
 		});
-		EvaluationFunction eva7 = new EvaluationFunction(new float[] { 5, // own tokens
+		EvaluationFunction eva7 = new EvaluationFunction(new float[] { 
+				5, // own tokens
 				4, // enemy tokens
 				2, // own score
 				2, // enemy scores
 				0.5f // own distances to win
 		});
-		EvaluationFunction eva8 = new EvaluationFunction(new float[] { 2, // own tokens
+		EvaluationFunction eva8 = new EvaluationFunction(new float[] { 
+				2, // own tokens
 				10, // enemy tokens
 				5, // own score
 				8, // enemy scores

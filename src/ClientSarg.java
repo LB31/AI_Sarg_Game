@@ -43,11 +43,8 @@ public class ClientSarg implements Runnable {
 		}
 	};
 
-	private int searchDepth = 6;
+	private int searchDepth = 8;
 
-	private long startTime;
-	private long endTime;
-	
 	private Token bestTokenToMove;
 	
 	private int pruningCounter;
@@ -128,19 +125,10 @@ public class ClientSarg implements Runnable {
 			timeLimit = nc.getTimeLimitInSeconds();
 			latency = nc.getExpectedNetworkLatencyInMilliseconds();
 
-//			if (playerNumber == 0)
-//				for (Token[] row : mainField.playfield) {
-//					System.out.println(Arrays.toString(row));
-//				}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-//		try {
-//			Thread.sleep(30000);
-//		} catch (InterruptedException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
+
 		update();
 	}
 
@@ -181,16 +169,11 @@ public class ClientSarg implements Runnable {
 
 	private Move calculateMove() {
 		Move move = null;
-		
-//		startTime = System.currentTimeMillis();
-		
+
 		alphaBetaFields.push(newPlayingFieldCopy(mainField));
 		AlphaBeta(searchDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, 1);
 		alphaBetaFields.empty();
-		
-//		endTime = System.currentTimeMillis();
-//		System.out.println(endTime - startTime + " duration");
-		
+
 		Token token = bestTokenToMove;
 
 		// when no move was found just pick one
@@ -233,8 +216,6 @@ public class ClientSarg implements Runnable {
 			playingField = mainField;
 		}
 
-//		Token tokenToMove = playingField.tokenPositions.stream().filter(t -> t.x == move.x && t.y == move.y).findAny()
-//				.get();
 		Token tokenToMove = playingField.playfield[move.x][move.y];
 
 		for (int i = 0; i < moveDirections[0].length; i++) { // for new Tokens on the left and right side
@@ -302,7 +283,6 @@ public class ClientSarg implements Runnable {
 	}
 
 	/**
-	 * 
 	 * @param player: 1 = max, 2 = min, 3 = min
 	 */
 	private float AlphaBeta(int depth, float alpha, float beta, int player) {
@@ -320,8 +300,6 @@ public class ClientSarg implements Runnable {
 				updatePlayfield(new Move(token.x, token.y), true); // make move
 				float eval = AlphaBeta(depth - 1, maxEval, beta, 2);
 				alphaBetaFields.pop(); // undo move
-//				if (depth == searchDepth && playerNumber == 0)
-//					System.out.println(eval + " evaluation");
 				if (eval > maxEval) {
 					maxEval = eval;
 					if (depth == searchDepth) {
@@ -352,7 +330,6 @@ public class ClientSarg implements Runnable {
 						pruningCounter++;
 						break; // pruning
 					}
-
 				}
 			}
 			return minEval;
@@ -386,25 +363,20 @@ public class ClientSarg implements Runnable {
 		// Winning / losing
 		if (currentField.scores[playerNumber] == 5) {
 			return 100000; // you would win
-//			System.out.println("I SEE CHANCES " + rating);
 		}
 		if (currentField.scores[otherPlayers.get(0)] == 5 || currentField.scores[otherPlayers.get(1)] == 5) {
 			return -100000; // you would lose
-//			System.out.println("I DON'T WANT TO GO as player " + playerNumber + " " + rating);
 		}
 
 		// Token amounts
 		rating += evaFunc.cs[0] * currentField.tokenPositions.stream().filter(t -> t.mine).count();
 		rating -= evaFunc.cs[1] * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(0)).count();
 		rating -= evaFunc.cs[1] * currentField.tokenPositions.stream().filter(t -> t.owner == otherPlayers.get(1)).count();
-//		if (playerNumber == 0)
-//			System.out.println(rating + " only token amounts");
+
 		// Scores
 		rating += evaFunc.cs[2] * currentField.scores[playerNumber];
 		rating -= evaFunc.cs[3] * currentField.scores[otherPlayers.get(0)];
 		rating -= evaFunc.cs[3] * currentField.scores[otherPlayers.get(1)];
-//		if (playerNumber == 0)
-//			System.out.println(rating + " token amounts and scores");
 
 		// Distances to make a point
 		int distanceToWin = 0;
@@ -414,10 +386,13 @@ public class ClientSarg implements Runnable {
 		}
 		rating -= evaFunc.cs[4] * distanceToWin;
 
-		// TODO
-
 		return rating;
-
 	}
-
+	
+	// For the final fight
+	public static void main(String[] args) throws IOException {
+		ClientSarg cs = new ClientSarg("Leonid", new EvaluationFunction(new float[] {9.8203125f, 0.48828125f, 9.498047f, 9.902344f, 0.01171875f}));
+		new Thread(cs).start();
+	}
+	
 }

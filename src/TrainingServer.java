@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 import lenz.htw.sarg.Server;
@@ -39,19 +38,18 @@ public class TrainingServer implements Runnable {
 			}
 		}
 		winner = Server.runOnceAndReturnTheWinner(4);
-		
+
 		winner = getBest(sargFamily[0].getScores());
 		secondBest = getSecondBest(sargFamily[0].getScores());
-		
+
 		winner = getEvaNum(winner);
 		secondBest = getEvaNum(secondBest);
-		
 
 		System.err.println(winner + " eva winner");
 		System.err.println(secondBest + " eva second best");
 
 	}
-	
+
 	private int getEvaNum(int index) {
 		int evaNum = 0;
 		for (int j = 0; j < sargFamily.length; j++) {
@@ -60,7 +58,7 @@ public class TrainingServer implements Runnable {
 				break;
 			}
 		}
-		
+
 		return evaNum;
 	}
 

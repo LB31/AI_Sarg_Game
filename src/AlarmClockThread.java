@@ -15,9 +15,7 @@ public class AlarmClockThread{
 		this.cs = cs;
 		
 		this.timeLimit -= latency;
-		this.timeLimit -= 500;
-		
-//		System.out.println(this.timeLimit);
+		this.timeLimit -= 500; // buffer for half of a second
 
 		timer = new Timer();
 		timer.schedule(new RemindTask(), this.timeLimit);
